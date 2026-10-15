@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Nova Bot</title>
-<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="icon" href="icon.png" type="image/png" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -19,7 +19,7 @@
   --line-strong: rgba(255, 255, 255, 0.16);
   --text: #f3f3f4;
   --muted: #a3a3a8;
-  --dim: #6c6c72;
+  --dim: #8a8a90;
   --cyan: #8be9ff;
   --danger: #ff8b8b;
   --ok: #8bffb4;
@@ -29,13 +29,16 @@
   --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "Cascadia Code", "Consolas", ui-monospace, monospace;
   --radius: 16px;
+  --see: 0.65;   /* how see-through the panels are, 0-1 (Settings > Look) */
+  --blur: 6px; /* frosted-glass blur */
+  --solid: calc(1 - var(--see));
   --ease: cubic-bezier(0.22, 1, 0.36, 1);
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 body {
-  background: var(--bg);
+  background: #000;
   color: var(--text);
   font: 15px/1.6 var(--sans);
   display: flex;
@@ -51,9 +54,17 @@ a { color: var(--cyan); }
 ::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.16); }
 svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
+/* ---------- artwork behind everything ---------- */
+.backdrop { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: #000; }
+.backdrop img { width: 100%; height: 100%; object-fit: cover; object-position: center 42%; transition: opacity 0.6s, transform 1.2s var(--ease); }
+body.plain .backdrop img { opacity: 0; }
+body:not(.is-empty) .backdrop img { transform: scale(1.04); }
+
 /* ---------- sidebar ---------- */
 .side {
-  width: 272px; flex: none; background: var(--side);
+  width: 272px; flex: none;
+  background: rgba(7, 7, 8, calc(0.25 + var(--solid) * 0.75));
+  backdrop-filter: blur(var(--blur)) saturate(1.1);
   border-right: 1px solid var(--line);
   display: flex; flex-direction: column; padding: 18px 12px 12px;
   transition: margin-left 0.35s var(--ease);
@@ -62,7 +73,7 @@ body.side-closed .side { margin-left: -272px; }
 .brand { display: flex; align-items: center; gap: 10px; padding: 2px 8px 18px; }
 .brand-name { font: 300 26px/1 var(--serif); letter-spacing: 0.01em; }
 .brand-name em { font-style: italic; color: var(--muted); }
-.brand-spark { width: 16px; height: 16px; color: var(--cyan); }
+.brand-avatar { width: 30px; height: 30px; border-radius: 9px; object-fit: cover; box-shadow: 0 0 0 1px var(--line-strong); }
 .new-chat {
   display: flex; align-items: center; gap: 10px; width: 100%;
   background: var(--glass); border: 1px solid var(--line); border-radius: 12px;
@@ -90,12 +101,20 @@ body.side-closed .side { margin-left: -272px; }
 .side-btn:hover { background: var(--glass); color: var(--text); }
 
 /* ---------- main ---------- */
-main { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; }
+main {
+  flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative;
+  background: rgba(10, 10, 11, calc(0.2 + var(--solid) * 0.8));
+  backdrop-filter: blur(var(--blur));
+  transition: background 0.6s;
+}
+body.is-empty main { background: linear-gradient(180deg, rgba(10,10,11,0.12) 0%, rgba(10,10,11,0.04) 45%, rgba(10,10,11, calc(0.35 + var(--solid) * 0.5)) 80%); backdrop-filter: none; }
+body.plain main, body.plain .side { background: var(--bg); backdrop-filter: none; }
 .top {
   display: flex; align-items: center; gap: 10px; padding: 12px 18px;
   border-bottom: 1px solid transparent; transition: border-color 0.2s;
 }
 .top.scrolled { border-bottom-color: var(--line); }
+.top { position: relative; z-index: 5; }
 .icon-btn {
   background: none; border: 0; color: var(--muted); padding: 8px; border-radius: 10px; display: flex;
 }
@@ -109,7 +128,8 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; position: r
 .model-btn .where { color: var(--dim); font-weight: 400; font-size: 13px; }
 .model-menu {
   position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; width: 360px; max-height: 70vh; overflow-y: auto;
-  background: var(--panel); border: 1px solid var(--line-strong); border-radius: 14px; padding: 6px;
+  background: rgba(17, 17, 19, calc(0.55 + var(--solid) * 0.43)); backdrop-filter: blur(calc(var(--blur) + 14px));
+  border: 1px solid var(--line-strong); border-radius: 14px; padding: 6px;
   box-shadow: 0 24px 60px rgba(0,0,0,0.55); display: none;
 }
 .model-menu.open { display: block; animation: pop 0.18s var(--ease); }
@@ -135,18 +155,22 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; position: r
 .thread { max-width: 800px; margin: 0 auto; padding: 18px 24px 40px; }
 
 /* welcome */
-.welcome { max-width: 720px; margin: 0 auto; padding: 12vh 24px 40px; text-align: center; }
-.welcome h1 { font: 300 clamp(48px, 8vw, 84px)/1 var(--serif); margin: 0 0 6px; letter-spacing: -0.01em; }
-.welcome h1 em { color: var(--muted); }
-.welcome p.sub { color: var(--muted); margin: 0 0 34px; }
+#thread { min-height: 100%; display: flex; flex-direction: column; }
+#thread > .thread { width: 100%; }
+.welcome { width: 100%; max-width: 720px; flex: 1; margin: 0 auto; padding: 40px 24px 20px; text-align: center; display: flex; flex-direction: column; justify-content: flex-end; }
+.welcome h1 { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.welcome p.sub { color: rgba(255,255,255,0.85); margin: 0 0 18px; font: italic 300 22px/1.3 var(--serif); text-shadow: 0 2px 20px rgba(0,0,0,0.9); }
+body.plain .welcome { justify-content: center; }
+body.plain .welcome h1 { position: static; width: auto; height: auto; clip: auto; font: 300 clamp(48px, 8vw, 84px)/1 var(--serif); margin: 0 0 6px; }
+body.plain .welcome h1 em { color: var(--muted); }
 .ideas { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; text-align: left; }
-.idea { background: var(--glass); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; transition: border-color 0.2s, background 0.2s, transform 0.3s var(--ease); }
-.idea:hover { border-color: var(--line-strong); background: rgba(255,255,255,0.05); transform: translateY(-2px); }
+.idea { background: rgba(12, 12, 14, calc(0.35 + var(--solid) * 0.6)); backdrop-filter: blur(var(--blur)); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; transition: border-color 0.2s, background 0.2s, transform 0.3s var(--ease); }
+.idea:hover { border-color: var(--line-strong); background: rgba(30, 30, 34, calc(0.45 + var(--solid) * 0.5)); transform: translateY(-2px); }
 .idea b { display: block; font-weight: 500; font-size: 14px; }
 .idea span { color: var(--dim); font-size: 13px; }
-.setup-card { text-align: left; background: var(--panel); border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 22px 24px; margin-top: 8px; }
+.setup-card { text-align: left; padding: 18px 22px !important; background: rgba(17, 17, 19, calc(0.55 + var(--solid) * 0.43)); backdrop-filter: blur(calc(var(--blur) + 8px)); border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 22px 24px; margin-top: 8px; }
 .setup-card h3 { font: 400 26px/1.1 var(--serif); margin: 0 0 6px; }
-.setup-card p { color: var(--muted); margin: 0 0 16px; font-size: 14px; }
+.setup-card p { color: var(--muted); margin: 0 0 14px; font-size: 14px; }
 .setup-card ol { margin: 0 0 16px; padding-left: 20px; color: var(--muted); font-size: 14px; }
 .setup-card li { margin-bottom: 4px; }
 .setup-row { display: flex; gap: 8px; }
@@ -156,11 +180,11 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; position: r
 @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
 .msg.user { display: flex; justify-content: flex-end; }
 .msg.user .bubble {
-  background: var(--panel-2); border: 1px solid var(--line); border-radius: 18px 18px 6px 18px;
+  background: rgba(30, 30, 34, calc(0.45 + var(--solid) * 0.5)); backdrop-filter: blur(var(--blur)); border: 1px solid var(--line); border-radius: 18px 18px 6px 18px;
   padding: 10px 16px; max-width: 80%; white-space: pre-wrap; word-wrap: break-word;
 }
 .msg.ai .who { display: flex; align-items: center; gap: 8px; color: var(--dim); font-size: 12px; margin-bottom: 6px; }
-.msg.ai .who svg { width: 14px; height: 14px; color: var(--cyan); }
+.msg.ai .who img { width: 22px; height: 22px; border-radius: 7px; object-fit: cover; box-shadow: 0 0 0 1px var(--line-strong); }
 .msg.ai .body { word-wrap: break-word; }
 .msg.ai .body > :first-child { margin-top: 0; }
 .msg.ai .body > :last-child { margin-bottom: 0; }
@@ -175,7 +199,7 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; position: r
 .body table { border-collapse: collapse; margin: 0 0 12px; font-size: 14px; display: block; overflow-x: auto; }
 .body th, .body td { border: 1px solid var(--line-strong); padding: 6px 12px; text-align: left; }
 .body th { background: var(--glass); font-weight: 600; }
-.code { margin: 0 0 14px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #0d0d0f; }
+.code { margin: 0 0 14px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: rgba(8, 8, 10, calc(0.5 + var(--solid) * 0.48)); }
 .code-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px 6px 14px; background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--line); font-size: 12px; color: var(--dim); }
 .code-head button { background: none; border: 0; color: var(--dim); font-size: 12px; padding: 3px 8px; border-radius: 6px; }
 .code-head button:hover { color: var(--text); background: var(--glass); }
@@ -202,7 +226,7 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; position: r
 /* composer */
 .composer-wrap { padding: 0 24px 18px; }
 .composer {
-  max-width: 800px; margin: 0 auto; background: var(--panel); border: 1px solid var(--line-strong);
+  max-width: 800px; margin: 0 auto; background: rgba(17, 17, 19, calc(0.45 + var(--solid) * 0.53)); backdrop-filter: blur(calc(var(--blur) + 8px)); border: 1px solid var(--line-strong);
   border-radius: 20px; padding: 10px 10px 10px 18px; display: flex; align-items: flex-end; gap: 8px;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -219,7 +243,22 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; position: r
 .send:disabled { opacity: 0.25; cursor: default; }
 .send:not(:disabled):hover { transform: scale(1.05); }
 .send svg.i { width: 18px; height: 18px; stroke-width: 2.2; }
-.hint { text-align: center; color: var(--dim); font-size: 12px; margin-top: 8px; }
+.hint { text-align: center; color: var(--muted); font-size: 12px; margin-top: 8px; text-shadow: 0 1px 8px rgba(0,0,0,0.95); }
+
+/* first-start download */
+.auto-dl { display: none; align-items: center; gap: 12px; max-width: 800px; width: calc(100% - 48px); margin: 4px auto 0; padding: 10px 14px; border: 1px solid rgba(139,233,255,0.25); border-radius: 14px; background: rgba(10, 20, 24, calc(0.5 + var(--solid) * 0.45)); backdrop-filter: blur(var(--blur)); font-size: 13px; position: relative; z-index: 4; }
+.auto-dl.show { display: flex; }
+.auto-dl .bar { flex: 1; height: 5px; border-radius: 99px; background: rgba(255,255,255,0.08); overflow: hidden; min-width: 80px; }
+.auto-dl .bar i { display: block; height: 100%; width: 0; background: var(--cyan); transition: width 0.4s; }
+.auto-dl b { font-weight: 500; }
+.auto-dl span { color: var(--muted); white-space: nowrap; }
+
+/* look */
+.look-bgs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 22px; }
+.look-bg { position: relative; aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; border: 1px solid var(--line-strong); background: #000; padding: 0; }
+.look-bg img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.look-bg span { position: absolute; left: 10px; bottom: 8px; font-size: 13px; text-shadow: 0 1px 8px #000; }
+.look-bg.on { outline: 2px solid var(--text); outline-offset: 2px; }
 
 /* buttons + fields */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 99px; padding: 9px 18px; font-weight: 500; font-size: 14px; border: 1px solid transparent; white-space: nowrap; text-decoration: none; }
@@ -229,15 +268,15 @@ main { flex: 1; display: flex; flex-direction: column; min-width: 0; position: r
 .btn-ghost:hover { border-color: var(--line-strong); background: rgba(255,255,255,0.06); }
 .btn-danger { background: none; border-color: rgba(255,139,139,0.3); color: var(--danger); }
 .btn:disabled { opacity: 0.4; cursor: default; }
-.field { width: 100%; background: var(--bg); border: 1px solid var(--line-strong); border-radius: 12px; padding: 9px 12px; outline: 0; }
+.field { width: 100%; background: rgba(5, 5, 6, 0.6); border: 1px solid var(--line-strong); border-radius: 12px; padding: 9px 12px; outline: 0; }
 .field:focus { border-color: rgba(255,255,255,0.35); }
 textarea.field { resize: vertical; min-height: 120px; line-height: 1.5; }
 
 /* settings */
-.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; z-index: 50; padding: 20px; }
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(3px); display: none; align-items: center; justify-content: center; z-index: 50; padding: 20px; }
 .overlay.open { display: flex; animation: fade 0.2s; }
 @keyframes fade { from { opacity: 0; } }
-.modal { width: min(720px, 100%); max-height: 88vh; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line-strong); border-radius: 20px; box-shadow: 0 40px 100px rgba(0,0,0,0.6); animation: pop 0.25s var(--ease); }
+.modal { width: min(720px, 100%); max-height: 88vh; display: flex; flex-direction: column; background: rgba(17, 17, 19, calc(0.6 + var(--solid) * 0.38)); backdrop-filter: blur(calc(var(--blur) + 16px)); border: 1px solid var(--line-strong); border-radius: 20px; box-shadow: 0 40px 100px rgba(0,0,0,0.6); animation: pop 0.25s var(--ease); }
 .modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 0 24px; }
 .modal-head h2 { font: 300 32px/1 var(--serif); margin: 0; }
 .tabs { display: flex; gap: 4px; padding: 14px 20px 0; border-bottom: 1px solid var(--line); }
@@ -288,7 +327,13 @@ textarea.field { resize: vertical; min-height: 120px; line-height: 1.5; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 </style>
 </head>
-<body>
+<body class="is-empty">
+<div class="backdrop" aria-hidden="true">
+  <picture>
+    <source media="(max-aspect-ratio: 1/1)" srcset="art-square.webp" />
+    <img src="art-wide.webp" alt="" />
+  </picture>
+</div>
 <svg width="0" height="0" style="position:absolute">
   <symbol id="spark" viewBox="0 0 24 24"><path d="M12 2c.6 4.8 2.4 8.4 10 10-7.6 1.6-9.4 5.2-10 10-.6-4.8-2.4-8.4-10-10 7.6-1.6 9.4-5.2 10-10z" fill="currentColor" stroke="none"/></symbol>
   <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
@@ -305,7 +350,7 @@ textarea.field { resize: vertical; min-height: 120px; line-height: 1.5; }
 
 <aside class="side" id="side">
   <div class="brand">
-    <svg class="brand-spark"><use href="#spark"/></svg>
+    <img class="brand-avatar" src="avatar.webp" alt="" />
     <span class="brand-name">Nova <em>Bot</em></span>
   </div>
   <button class="new-chat" id="new-chat"><svg class="i"><use href="#plus"/></svg>New chat<kbd>Ctrl+N</kbd></button>
@@ -332,6 +377,11 @@ textarea.field { resize: vertical; min-height: 120px; line-height: 1.5; }
     </label>
   </div>
 
+  <div class="auto-dl" id="auto-dl" role="status">
+    <b>Downloading a free AI for this PC</b><span id="auto-dl-model"></span>
+    <div class="bar"><i id="auto-dl-bar"></i></div><span id="auto-dl-pct"></span>
+  </div>
+
   <div class="scroll" id="scroll">
     <div id="thread"></div>
   </div>
@@ -355,6 +405,7 @@ textarea.field { resize: vertical; min-height: 120px; line-height: 1.5; }
       <button class="tab active" data-tab="cloud">Free cloud AIs</button>
       <button class="tab" data-tab="local">AI on this PC</button>
       <button class="tab" data-tab="persona">Personality</button>
+      <button class="tab" data-tab="look">Look</button>
     </div>
     <div class="modal-body">
       <div class="pane active" data-pane="cloud">
@@ -373,6 +424,23 @@ textarea.field { resize: vertical; min-height: 120px; line-height: 1.5; }
         </div>
         <div class="progress" id="pull-progress"><i></i></div>
         <div class="pull-status" id="pull-status"></div>
+      </div>
+      <div class="pane" data-pane="look">
+        <label class="set-label">Background</label>
+        <div class="look-bgs">
+          <button class="look-bg" data-bg="art"><img src="art-wide.webp" alt="" /><span>Nova Bot art</span></button>
+          <button class="look-bg" data-bg="plain"><span>Plain black</span></button>
+        </div>
+        <label class="set-label" for="look-see">Transparency <span id="look-see-val" style="color:var(--dim);font-weight:400"></span></label>
+        <input type="range" class="range" id="look-see" min="0" max="1" step="0.05" />
+        <div class="range-labels"><span>Solid</span><span>See-through</span></div>
+        <p class="set-hint">How much of the artwork shows through the sidebar, chat, menus and this window.</p>
+        <label class="set-label" for="look-blur">Glass blur <span id="look-blur-val" style="color:var(--dim);font-weight:400"></span></label>
+        <input type="range" class="range" id="look-blur" min="0" max="40" step="1" />
+        <div class="range-labels"><span>Clear</span><span>Frosted</span></div>
+        <div class="save-row" style="margin-top:20px">
+          <button class="btn btn-ghost" id="reset-look">Reset to default</button>
+        </div>
       </div>
       <div class="pane" data-pane="persona">
         <label class="set-label" for="persona">Who Nova is and how it should answer</label>
@@ -638,20 +706,15 @@ function renderWelcome() {
     html += `<p class="sub">Your own AI. Ask it anything.</p><div class="ideas">` +
       IDEAS.map(([t, q]) => `<button class="idea" data-idea="${esc(q)}"><b>${esc(t)}</b><span>${esc(q)}</span></button>`).join("") + "</div>";
   } else {
-    html += `<p class="sub">Let's give Nova a brain. This takes about a minute.</p>
-      <div class="setup-card">
-        <h3>Connect Google Gemini, free</h3>
-        <p>The smartest AI you can use for free. It has a daily limit, but it's generous for one person.</p>
-        <ol>
-          <li>Open <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> and sign in with any Google account.</li>
-          <li>Click <b>Create API key</b> and copy it.</li>
-          <li>Paste it below.</li>
-        </ol>
+    const downloading = $("#auto-dl").classList.contains("show");
+    html += `<div class="setup-card">
+        <h3>${downloading ? "Want the smartest free AI too?" : "Connect Google Gemini, free"}</h3>
+        <p>${downloading ? "Your free, unlimited AI is downloading above. For the smartest free AI, add Google Gemini as well: " : "The smartest free AI, with a generous daily limit: "}open <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>, sign in, click <b>Create API key</b> and paste it here.</p>
         <div class="setup-row">
           <input class="field" id="quick-key" placeholder="Paste your Gemini key" style="font-family:var(--mono);font-size:13px" />
           <button class="btn btn-primary" id="quick-save">Connect</button>
         </div>
-        <p style="margin:14px 0 0">Or <a href="#" data-goto="local">run an AI on this PC</a> instead: private and unlimited, but less smart.</p>
+        ${downloading ? "" : `<p style="margin:12px 0 0">Or <a href="#" data-goto="local">run an AI on this PC</a>: free, private and unlimited.</p>`}
       </div>`;
   }
   return html + "</div>";
@@ -666,10 +729,11 @@ function aiMessageHtml(m, idx) {
 }
 function renderThread() {
   const t = $("#thread");
+  document.body.classList.toggle("is-empty", !current.messages.length);
   if (!current.messages.length) { t.innerHTML = renderWelcome(); return; }
   t.innerHTML = '<div class="thread">' + current.messages.map((m, i) => m.role === "user"
     ? `<div class="msg user"><div class="bubble">${esc(m.content)}</div></div>`
-    : `<div class="msg ai" data-i="${i}"><div class="who"><svg><use href="#spark"/></svg>Nova</div><div class="body">${aiMessageHtml(m, i)}</div>
+    : `<div class="msg ai" data-i="${i}"><div class="who"><img src="avatar.webp" alt="" />Nova</div><div class="body">${aiMessageHtml(m, i)}</div>
         <div class="msg-tools"><button data-act="copy" data-i="${i}" title="Copy"><svg class="i"><use href="#copy"/></svg></button>${i === current.messages.length - 1 ? `<button data-act="redo" title="Try again"><svg class="i"><use href="#redo"/></svg></button>` : ""}<span class="model-note">${esc(modelLabel(m.model || ""))}</span></div></div>`
   ).join("") + "</div>";
   scrollDown(true);
@@ -780,13 +844,70 @@ async function run() {
       paint();
     }, ctrl.signal);
   } catch (err) {
-    if (err.name !== "AbortError") reply.error = "Lost connection to Nova Bot. Is the app still running?";
+    if (err.name !== "AbortError") { console.error(err); reply.error = "Lost connection to Nova Bot (" + err.message + "). Is the app still running?"; }
   }
   reply.streaming = false;
   if (!reply.content && !reply.error && ctrl.signal.aborted) reply.error = "Stopped.";
   setBusy(null);
   saveChats();
   if (current === chat) renderThread();
+}
+
+// ---------- look (artwork + see-through glass) ----------
+const DEFAULT_LOOK = { background: "art", see: 0.65, blur: 6 };
+function applyLook() {
+  const look = settings.look || DEFAULT_LOOK;
+  document.documentElement.style.setProperty("--see", look.see);
+  document.documentElement.style.setProperty("--blur", look.blur + "px");
+  document.body.classList.toggle("plain", look.background === "plain");
+  document.querySelectorAll(".look-bg").forEach((b) => b.classList.toggle("on", b.dataset.bg === look.background));
+  $("#look-see").value = look.see;
+  $("#look-blur").value = look.blur;
+  $("#look-see-val").textContent = Math.round(look.see * 100) + "%";
+  $("#look-blur-val").textContent = look.blur + "px";
+}
+let lookTimer;
+function setLook(change) {
+  settings.look = { ...(settings.look || DEFAULT_LOOK), ...change };
+  applyLook();
+  clearTimeout(lookTimer);
+  lookTimer = setTimeout(() => api("/nova/settings", { look: settings.look }), 300);
+}
+$("#look-see").oninput = (e) => setLook({ see: +e.target.value });
+$("#look-blur").oninput = (e) => setLook({ blur: +e.target.value });
+document.querySelectorAll(".look-bg").forEach((b) => (b.onclick = () => setLook({ background: b.dataset.bg })));
+$("#reset-look").onclick = () => setLook({ ...DEFAULT_LOOK });
+
+// ---------- first-start download ----------
+async function watchAutoDownload() {
+  let wasDownloading = false;
+  let idleChecks = 0;
+  for (;;) {
+    let st;
+    try { st = await api("/nova/status"); } catch { st = null; }
+    const a = st && st.auto;
+    const box = $("#auto-dl");
+    if (a && a.state === "downloading") {
+      if (!wasDownloading && current && !current.messages.length) { box.classList.add("show"); renderThread(); }
+      wasDownloading = true;
+      box.classList.add("show");
+      $("#auto-dl-model").textContent = a.model;
+      const pct = a.total ? Math.round((a.completed / a.total) * 100) : 0;
+      $("#auto-dl-bar").style.width = pct + "%";
+      $("#auto-dl-pct").textContent = a.total ? `${pct}% of ${(a.total / 1e9).toFixed(1)} GB` : "starting…";
+    } else {
+      box.classList.remove("show");
+      if (wasDownloading) {
+        if (a && a.state === "done") {
+          settings = await api("/nova/settings");
+          toast(`${a.model} is ready: free, private, no limits`);
+        } else if (a && a.state === "error") toast("Download failed: " + a.error);
+        await loadModels();
+      }
+      if (!a || a.state !== "idle" || wasDownloading || ++idleChecks > 15) return;
+    }
+    await new Promise((r) => setTimeout(r, 1500));
+  }
 }
 
 // ---------- settings ----------
@@ -918,11 +1039,13 @@ document.addEventListener("keydown", (e) => {
   settings = await api("/nova/settings");
   chats = await api("/nova/chats");
   $("#think-toggle").checked = !!settings.think;
+  applyLook();
   current = { id: uid(), title: "New chat", created: Date.now(), messages: [] };
   renderChatList();
   renderThread();
   renderModelButton();
   await loadModels();
+  watchAutoDownload();
 })();
 </script>
 </body>

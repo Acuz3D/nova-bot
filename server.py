@@ -96,7 +96,11 @@ def load_settings():
     s.setdefault("personality", DEFAULT_PERSONALITY)
     s.setdefault("temperature", 0.7)
     s.setdefault("model", "")
-    s.setdefault("think", True)
+    s.setdefault("think", False)  # thinking is smarter but much slower on a home PC
+    look = s.setdefault("look", {})
+    look.setdefault("background", "art")
+    look.setdefault("see", 0.65)   # 0 = solid panels, 1 = fully see-through
+    look.setdefault("blur", 6)   # px of frosted-glass blur
     return s
 
 
@@ -109,6 +113,7 @@ def public_settings(s):
         "temperature": s["temperature"],
         "model": s["model"],
         "think": s["think"],
+        "look": s["look"],
         "providers": {
             pid: {"name": p["name"], "key_url": p["key_url"],
                   "has_key": bool(s["keys"].get(pid)),
@@ -238,15 +243,14 @@ def stream_chat(req, emit):
 
     if provider == "ollama":
         start_ollama()
+        # Thinking models think by default, so say so either way.
         body = {"model": model, "messages": messages, "stream": True,
-                "options": {"temperature": temperature}}
-        if settings["think"]:
-            body["think"] = True
+                "think": bool(settings["think"]), "options": {"temperature": temperature}}
         try:
             resp = http_json(OLLAMA + "/api/chat", body, timeout=900)
         except urllib.error.HTTPError as e:
-            # Some models can't "think"; try again without it.
-            if body.pop("think", None) and e.code == 400:
+            # Some models can't "think" at all; try again without the setting.
+            if e.code == 400 and body.pop("think", None) is not None:
                 resp = http_json(OLLAMA + "/api/chat", body, timeout=900)
             else:
                 raise
@@ -309,6 +313,64 @@ def stream_pull(model, emit):
                   "completed": j.get("completed", 0), "total": j.get("total", 0)})
 
 
+# ---------- first start: download a free, unlimited model that fits this PC ----------
+
+AUTO = {"state": "idle", "model": "", "completed": 0, "total": 0, "error": ""}
+
+
+def graphics_memory_gb():
+    """Memory on the NVIDIA graphics card in GB, or 0 if there isn't one."""
+    try:
+        out = subprocess.run(
+            ["nvidia-smi", "--query-gpu=memory.total", "--format=csv,noheader,nounits"],
+            capture_output=True, text=True, timeout=10, creationflags=subprocess.CREATE_NO_WINDOW,
+        ).stdout
+        return max(int(x) for x in out.split()) / 1024
+    except Exception:
+        return 0
+
+
+def best_model_for_this_pc():
+    gb = graphics_memory_gb()
+    if gb >= 22:
+        return "qwen3.5:27b"
+    if gb >= 7:
+        return "qwen3.5:9b"
+    return "qwen3.5:4b"
+
+
+def auto_download():
+    """If nothing is on this PC yet, download the best model for it, once."""
+    start_ollama()
+    if not ollama_running() or load_settings().get("auto_downloaded"):
+        return
+    try:
+        with http_json(OLLAMA + "/api/tags", timeout=5) as r:
+            if json.load(r).get("models"):
+                return
+    except Exception:
+        return
+    model = best_model_for_this_pc()
+    AUTO.update(state="downloading", model=model, completed=0, total=0, error="")
+
+    def progress(ev):
+        if ev.get("total"):
+            AUTO.update(completed=ev["completed"], total=ev["total"])
+
+    try:
+        stream_pull(model, progress)
+    except Exception as e:
+        AUTO.update(state="error", error=error_text(e))
+        return
+    with _lock:
+        s = load_settings()
+        s["auto_downloaded"] = True
+        if not s["model"] or not any(s["keys"].values()):
+            s["model"] = "ollama|" + model
+        save_json(SETTINGS_FILE, s)
+    AUTO.update(state="done")
+
+
 # ---------- web server ----------
 
 class Handler(SimpleHTTPRequestHandler):
@@ -335,15 +397,15 @@ class Handler(SimpleHTTPRequestHandler):
         return json.loads(self.rfile.read(length) or b"{}")
 
     def stream(self, work):
-        """Send newline-separated JSON events while work(emit) runs."""
+        """Send newline-separated JSON events while work(emit) runs.
+        The reply simply ends when the connection closes (plain HTTP/1.0)."""
+        self.close_connection = True
         self.send_response(200)
         self.send_header("Content-Type", "application/x-ndjson")
-        self.send_header("Transfer-Encoding", "chunked")
         self.end_headers()
 
         def emit(event):
-            chunk = (json.dumps(event) + "\n").encode()
-            self.wfile.write(b"%x\r\n%s\r\n" % (len(chunk), chunk))
+            self.wfile.write((json.dumps(event) + "\n").encode())
             self.wfile.flush()
 
         try:
@@ -356,10 +418,6 @@ class Handler(SimpleHTTPRequestHandler):
                 emit({"type": "error", "content": error_text(e)})
             except OSError:
                 return
-        try:
-            self.wfile.write(b"0\r\n\r\n")
-        except OSError:
-            pass
 
     def do_GET(self):
         if self.path == "/nova/settings":
@@ -368,6 +426,8 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_json(list_models(load_settings()))
         if self.path == "/nova/chats":
             return self.send_json(load_json(CHATS_FILE, []))
+        if self.path == "/nova/status":
+            return self.send_json({"auto": AUTO, "ollama": ollama_running()})
         return super().do_GET()
 
     def do_POST(self):
@@ -382,7 +442,7 @@ class Handler(SimpleHTTPRequestHandler):
                             s["keys"][pid] = key
                         else:
                             s["keys"].pop(pid, None)
-                for field in ("personality", "temperature", "model", "think"):
+                for field in ("personality", "temperature", "model", "think", "look"):
                     if field in changes:
                         s[field] = changes[field]
                 save_json(SETTINGS_FILE, s)
@@ -430,7 +490,7 @@ def main():
         if want_window:
             open_window()
         return
-    threading.Thread(target=start_ollama, daemon=True).start()
+    threading.Thread(target=auto_download, daemon=True).start()
     server = ThreadingHTTPServer((HOST, PORT), Handler)
     if want_window:
         threading.Timer(0.6, open_window).start()

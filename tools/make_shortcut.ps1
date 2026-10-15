@@ -15,7 +15,7 @@ foreach ($dir in $places) {
     $lnk.TargetPath = $pythonw
     $lnk.Arguments = "`"$root\server.py`" --open"
     $lnk.WorkingDirectory = $root
-    $lnk.IconLocation = "$root\app\icon.ico"
+    $lnk.IconLocation = "$root\app\nova-bot.ico"
     $lnk.Description = "Nova Bot - your own AI"
     $lnk.Save()
     Write-Host "Shortcut added: $dir\Nova Bot.lnk"

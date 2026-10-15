@@ -1,6 +1,4 @@
-<p align="center"><img src="app/icon.png" width="96" alt="Nova Bot icon"></p>
-
-<h1 align="center">Nova Bot</h1>
+<p align="center"><img src="docs/banner.jpg" alt="Nova Bot"></p>
 
 <p align="center">Your own AI chat app for Windows, made by Nova Studios. Free, private and yours to customise.</p>
 
@@ -17,6 +15,8 @@ Nova Bot is one chat window that can use the smartest free AIs on the internet o
 
 ## Features
 
+- **A free AI downloads automatically on first start.** Nova Bot checks your graphics card and downloads the best free, unlimited model for it (Qwen 3.5 4B, 9B or 27B)
+- **See-through glass over the Nova Bot artwork.** Every panel is frosted glass, and **Settings → Look** sets how see-through it is, how much blur, or a plain black background
 - Chats are saved, with a list of past chats in the sidebar
 - Replies appear word by word, and you can stop them mid-answer
 - A "Think first" mode makes the AI reason step by step before answering, and you can open up its thinking
@@ -29,9 +29,8 @@ Nova Bot is one chat window that can use the smartest free AIs on the internet o
 
 1. Download this repo: **Code → Download ZIP**, then unzip it somewhere.
 2. Double-click **`Install.bat`**. It installs Python and Ollama if you don't have them and adds a **Nova Bot** shortcut to your Desktop and Start menu.
-3. Open Nova Bot and follow the one-minute setup:
-   - **For the smartest AI:** get a free key at [Google AI Studio](https://aistudio.google.com/apikey) and paste it in.
-   - **For private and offline:** open **Settings → AI on this PC** and download `qwen3.5:9b`. It's the best fit for an 8 GB graphics card.
+3. Open Nova Bot. It starts downloading a free AI for your PC by itself, and you can start chatting when the bar fills up.
+   - **For the smartest AI as well:** get a free key at [Google AI Studio](https://aistudio.google.com/apikey) and paste it in.
 
 ## Which model should I download for my PC?
 
@@ -54,7 +53,8 @@ python server.py --open
 
 - `server.py`: a small local server on `127.0.0.1:8765`. It serves the window and forwards chats to Gemini, Groq, OpenRouter (OpenAI-compatible APIs) or Ollama.
 - `app/index.html`: the whole chat window (HTML, CSS and JS in one file).
-- `tools/make_icon.py`: redraws the icon. `tools/make_shortcut.ps1` makes the shortcuts.
+- `art/`: the original Nova Bot artwork. `tools/make_icon.py` (needs Pillow) turns it into the icon, avatar and backgrounds in `app/`.
+- `tools/make_shortcut.ps1` makes the Desktop and Start menu shortcuts.
 
 ---
 

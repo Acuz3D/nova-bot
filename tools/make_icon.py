@@ -1,74 +1,40 @@
-"""Draws the Nova Bot icon (a white four-point spark on a dark rounded square)
-and saves it as app/icon.ico and app/icon.png, using only the standard library."""
+"""Makes Nova Bot's pictures from the artwork in art/ (needs Pillow: pip install pillow).
+
+    app/nova-bot.ico, app/icon.png   the app icon (rounded square, face and wordmark)
+    app/avatar.webp              Nova's picture next to its replies
+    app/art-wide.webp            window background (wide)
+    app/art-square.webp          window background (narrow windows)
+"""
 import os
-import struct
-import zlib
+from PIL import Image, ImageDraw
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-APP = os.path.join(HERE, "..", "app")
-BG = (10, 10, 11)
-FG = (243, 243, 244)
-SS = 4  # samples per pixel side, for smooth edges
+ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+ART = os.path.join(ROOT, "art")
+APP = os.path.join(ROOT, "app")
+FACE_BOX = (247, 200, 1007, 960)  # the face and the full "Nova ✦ Bot" in the square art
 
 
-def inside_square(x, y, r=0.22):
-    # Rounded square covering the whole canvas, x/y in [0, 1].
-    dx = max(abs(x - 0.5) - (0.5 - r), 0)
-    dy = max(abs(y - 0.5) - (0.5 - r), 0)
-    return dx * dx + dy * dy <= r * r
-
-
-def inside_spark(x, y, size=0.36):
-    # |x|^0.5 + |y|^0.5 <= 1 is a four-point star with curved sides.
-    u = abs(x - 0.5) / size
-    v = abs(y - 0.5) / size
-    return u ** 0.5 + v ** 0.5 <= 1
-
-
-def draw(n):
-    rows = []
-    for py in range(n):
-        row = bytearray([0])  # PNG filter byte
-        for px in range(n):
-            bg = fg = 0
-            for sy in range(SS):
-                for sx in range(SS):
-                    x = (px + (sx + 0.5) / SS) / n
-                    y = (py + (sy + 0.5) / SS) / n
-                    if inside_square(x, y):
-                        bg += 1
-                        if inside_spark(x, y):
-                            fg += 1
-            total = SS * SS
-            a = bg / total
-            f = fg / bg if bg else 0
-            rgb = [round(BG[i] + (FG[i] - BG[i]) * f) for i in range(3)]
-            row += bytes(rgb + [round(a * 255)])
-        rows.append(bytes(row))
-    return b"".join(rows)
-
-
-def png(n):
-    def chunk(kind, data):
-        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data) & 0xFFFFFFFF)
-    header = struct.pack(">IIBBBBB", n, n, 8, 6, 0, 0, 0)
-    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", header) + chunk(b"IDAT", zlib.compress(draw(n), 9)) + chunk(b"IEND", b"")
+def rounded(img, radius):
+    mask = Image.new("L", (img.width * 4, img.height * 4), 0)
+    ImageDraw.Draw(mask).rounded_rectangle((0, 0, mask.width - 1, mask.height - 1), radius * 4, fill=255)
+    out = img.convert("RGBA")
+    out.putalpha(mask.resize(img.size, Image.LANCZOS))
+    return out
 
 
 def main():
-    sizes = [16, 24, 32, 48, 64, 128, 256]
-    images = [png(n) for n in sizes]
-    offset = 6 + 16 * len(sizes)
-    ico = struct.pack("<HHH", 0, 1, len(sizes))
-    for n, data in zip(sizes, images):
-        ico += struct.pack("<BBBBHHII", n % 256, n % 256, 0, 0, 1, 32, len(data), offset)
-        offset += len(data)
-    ico += b"".join(images)
-    with open(os.path.join(APP, "icon.ico"), "wb") as f:
-        f.write(ico)
-    with open(os.path.join(APP, "icon.png"), "wb") as f:
-        f.write(images[-1])
-    print("Saved app/icon.ico and app/icon.png")
+    square = Image.open(os.path.join(ART, "Nova Bot square.png")).convert("RGB")
+    wide = Image.open(os.path.join(ART, "Nova Bot wide.png")).convert("RGB")
+    wide.save(os.path.join(APP, "art-wide.webp"), quality=84, method=6)
+    square.save(os.path.join(APP, "art-square.webp"), quality=84, method=6)
+
+    face = square.crop(FACE_BOX)
+    face.resize((256, 256), Image.LANCZOS).save(os.path.join(APP, "avatar.webp"), quality=88, method=6)
+
+    icon = rounded(face.resize((256, 256), Image.LANCZOS), 56)
+    icon.save(os.path.join(APP, "icon.png"))
+    icon.save(os.path.join(APP, "nova-bot.ico"), sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)])
+    print("Saved icon, avatar and backgrounds in app/")
 
 
 if __name__ == "__main__":
