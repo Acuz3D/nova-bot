@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.tmp
+.vscode/
+# Keys, settings and chats live in %APPDATA%\Nova Bot, but never commit them if copied here.
+settings.json
+chats.json

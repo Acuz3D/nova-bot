@@ -1,0 +1,929 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Nova Bot</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root {
+  --bg: #0a0a0b;
+  --side: #070708;
+  --panel: #111113;
+  --panel-2: #17171a;
+  --glass: rgba(255, 255, 255, 0.035);
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --text: #f3f3f4;
+  --muted: #a3a3a8;
+  --dim: #6c6c72;
+  --cyan: #8be9ff;
+  --danger: #ff8b8b;
+  --ok: #8bffb4;
+  --btn: #f4f4f5;
+  --btn-text: #0a0a0b;
+  --serif: "Cormorant Garamond", "Times New Roman", serif;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "Cascadia Code", "Consolas", ui-monospace, monospace;
+  --radius: 16px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.6 var(--sans);
+  display: flex;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+button, input, textarea, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+a { color: var(--cyan); }
+::selection { background: rgba(139, 233, 255, 0.25); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 10px; border: 2px solid transparent; background-clip: padding-box; }
+::-webkit-scrollbar-thumb:hover { background-color: rgba(255,255,255,0.16); }
+svg.i { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* ---------- sidebar ---------- */
+.side {
+  width: 272px; flex: none; background: var(--side);
+  border-right: 1px solid var(--line);
+  display: flex; flex-direction: column; padding: 18px 12px 12px;
+  transition: margin-left 0.35s var(--ease);
+}
+body.side-closed .side { margin-left: -272px; }
+.brand { display: flex; align-items: center; gap: 10px; padding: 2px 8px 18px; }
+.brand-name { font: 300 26px/1 var(--serif); letter-spacing: 0.01em; }
+.brand-name em { font-style: italic; color: var(--muted); }
+.brand-spark { width: 16px; height: 16px; color: var(--cyan); }
+.new-chat {
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  background: var(--glass); border: 1px solid var(--line); border-radius: 12px;
+  padding: 10px 12px; text-align: left; transition: background 0.2s, border-color 0.2s;
+}
+.new-chat:hover { background: rgba(255,255,255,0.06); border-color: var(--line-strong); }
+.new-chat kbd { margin-left: auto; font: 11px var(--sans); color: var(--dim); }
+.side-label { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--dim); padding: 22px 10px 8px; }
+.chat-list { flex: 1; overflow-y: auto; margin: 0 -4px; padding: 0 4px; }
+.chat-item {
+  display: flex; align-items: center; gap: 6px; border-radius: 10px;
+  padding: 8px 6px 8px 10px; color: var(--muted); cursor: pointer; position: relative;
+}
+.chat-item:hover { background: var(--glass); color: var(--text); }
+.chat-item.active { background: rgba(255,255,255,0.07); color: var(--text); }
+.chat-item span { flex: 1; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 14px; }
+.chat-item button { opacity: 0; background: none; border: 0; color: var(--dim); padding: 3px; border-radius: 6px; display: flex; }
+.chat-item:hover button { opacity: 1; }
+.chat-item button:hover { color: var(--danger); background: rgba(255,255,255,0.06); }
+.side-foot { border-top: 1px solid var(--line); padding-top: 10px; margin-top: 8px; }
+.side-btn {
+  display: flex; align-items: center; gap: 10px; width: 100%; background: none; border: 0;
+  color: var(--muted); padding: 9px 10px; border-radius: 10px; text-align: left;
+}
+.side-btn:hover { background: var(--glass); color: var(--text); }
+
+/* ---------- main ---------- */
+main { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; }
+.top {
+  display: flex; align-items: center; gap: 10px; padding: 12px 18px;
+  border-bottom: 1px solid transparent; transition: border-color 0.2s;
+}
+.top.scrolled { border-bottom-color: var(--line); }
+.icon-btn {
+  background: none; border: 0; color: var(--muted); padding: 8px; border-radius: 10px; display: flex;
+}
+.icon-btn:hover { background: var(--glass); color: var(--text); }
+.model-pick { position: relative; }
+.model-btn {
+  display: flex; align-items: center; gap: 8px; background: none; border: 1px solid transparent;
+  border-radius: 12px; padding: 7px 12px; font-weight: 500;
+}
+.model-btn:hover, .model-btn[aria-expanded="true"] { background: var(--glass); border-color: var(--line); }
+.model-btn .where { color: var(--dim); font-weight: 400; font-size: 13px; }
+.model-menu {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 20; width: 360px; max-height: 70vh; overflow-y: auto;
+  background: var(--panel); border: 1px solid var(--line-strong); border-radius: 14px; padding: 6px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.55); display: none;
+}
+.model-menu.open { display: block; animation: pop 0.18s var(--ease); }
+@keyframes pop { from { opacity: 0; transform: translateY(-4px); } }
+.mm-group { padding: 10px 10px 4px; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); display: flex; justify-content: space-between; gap: 8px; }
+.mm-group small { text-transform: none; letter-spacing: 0; color: var(--dim); font-size: 11px; }
+.mm-item { display: flex; align-items: center; gap: 8px; width: 100%; background: none; border: 0; text-align: left; padding: 8px 10px; border-radius: 9px; font-size: 14px; }
+.mm-item:hover { background: var(--glass); }
+.mm-item.sel { background: rgba(255,255,255,0.07); }
+.mm-item .tag { margin-left: auto; font-size: 11px; color: var(--cyan); border: 1px solid rgba(139,233,255,0.3); border-radius: 99px; padding: 1px 8px; }
+.mm-empty { padding: 6px 10px 10px; color: var(--dim); font-size: 13px; }
+.mm-empty button { background: none; border: 0; color: var(--cyan); padding: 0; text-decoration: underline; }
+.top-spacer { flex: 1; }
+.toggle { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; cursor: pointer; user-select: none; padding: 6px 8px; border-radius: 10px; }
+.toggle:hover { background: var(--glass); }
+.toggle input { display: none; }
+.switch { width: 30px; height: 18px; border-radius: 99px; background: rgba(255,255,255,0.12); position: relative; transition: background 0.2s; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: var(--muted); transition: transform 0.25s var(--ease), background 0.2s; }
+.toggle input:checked + .switch { background: rgba(139,233,255,0.35); }
+.toggle input:checked + .switch::after { transform: translateX(12px); background: var(--cyan); }
+
+.scroll { flex: 1; overflow-y: auto; scroll-behavior: auto; }
+.thread { max-width: 800px; margin: 0 auto; padding: 18px 24px 40px; }
+
+/* welcome */
+.welcome { max-width: 720px; margin: 0 auto; padding: 12vh 24px 40px; text-align: center; }
+.welcome h1 { font: 300 clamp(48px, 8vw, 84px)/1 var(--serif); margin: 0 0 6px; letter-spacing: -0.01em; }
+.welcome h1 em { color: var(--muted); }
+.welcome p.sub { color: var(--muted); margin: 0 0 34px; }
+.ideas { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; text-align: left; }
+.idea { background: var(--glass); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; transition: border-color 0.2s, background 0.2s, transform 0.3s var(--ease); }
+.idea:hover { border-color: var(--line-strong); background: rgba(255,255,255,0.05); transform: translateY(-2px); }
+.idea b { display: block; font-weight: 500; font-size: 14px; }
+.idea span { color: var(--dim); font-size: 13px; }
+.setup-card { text-align: left; background: var(--panel); border: 1px solid var(--line-strong); border-radius: var(--radius); padding: 22px 24px; margin-top: 8px; }
+.setup-card h3 { font: 400 26px/1.1 var(--serif); margin: 0 0 6px; }
+.setup-card p { color: var(--muted); margin: 0 0 16px; font-size: 14px; }
+.setup-card ol { margin: 0 0 16px; padding-left: 20px; color: var(--muted); font-size: 14px; }
+.setup-card li { margin-bottom: 4px; }
+.setup-row { display: flex; gap: 8px; }
+
+/* messages */
+.msg { margin: 26px 0; animation: rise 0.35s var(--ease); }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } }
+.msg.user { display: flex; justify-content: flex-end; }
+.msg.user .bubble {
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 18px 18px 6px 18px;
+  padding: 10px 16px; max-width: 80%; white-space: pre-wrap; word-wrap: break-word;
+}
+.msg.ai .who { display: flex; align-items: center; gap: 8px; color: var(--dim); font-size: 12px; margin-bottom: 6px; }
+.msg.ai .who svg { width: 14px; height: 14px; color: var(--cyan); }
+.msg.ai .body { word-wrap: break-word; }
+.msg.ai .body > :first-child { margin-top: 0; }
+.msg.ai .body > :last-child { margin-bottom: 0; }
+.body p { margin: 0 0 12px; }
+.body h1, .body h2, .body h3, .body h4 { font-weight: 600; line-height: 1.3; margin: 22px 0 8px; }
+.body h1 { font-size: 22px; } .body h2 { font-size: 19px; } .body h3 { font-size: 16px; } .body h4 { font-size: 15px; }
+.body ul, .body ol { margin: 0 0 12px; padding-left: 22px; }
+.body li { margin: 3px 0; }
+.body blockquote { margin: 0 0 12px; border-left: 2px solid var(--line-strong); padding: 2px 14px; color: var(--muted); }
+.body hr { border: 0; border-top: 1px solid var(--line); margin: 18px 0; }
+.body code { font: 13px var(--mono); background: rgba(255,255,255,0.07); padding: 1px 6px; border-radius: 6px; }
+.body table { border-collapse: collapse; margin: 0 0 12px; font-size: 14px; display: block; overflow-x: auto; }
+.body th, .body td { border: 1px solid var(--line-strong); padding: 6px 12px; text-align: left; }
+.body th { background: var(--glass); font-weight: 600; }
+.code { margin: 0 0 14px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #0d0d0f; }
+.code-head { display: flex; align-items: center; justify-content: space-between; padding: 6px 8px 6px 14px; background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--line); font-size: 12px; color: var(--dim); }
+.code-head button { background: none; border: 0; color: var(--dim); font-size: 12px; padding: 3px 8px; border-radius: 6px; }
+.code-head button:hover { color: var(--text); background: var(--glass); }
+.code pre { margin: 0; padding: 14px; overflow-x: auto; }
+.code pre code { background: none; padding: 0; font-size: 13px; line-height: 1.55; }
+.think { margin: 0 0 12px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,0.02); }
+.think summary { cursor: pointer; padding: 8px 14px; color: var(--dim); font-size: 13px; list-style: none; display: flex; align-items: center; gap: 8px; }
+.think summary::-webkit-details-marker { display: none; }
+.think summary::before { content: "›"; transition: transform 0.2s; display: inline-block; }
+.think[open] summary::before { transform: rotate(90deg); }
+.think .think-text { padding: 0 14px 12px; color: var(--dim); font-size: 13px; white-space: pre-wrap; max-height: 320px; overflow-y: auto; }
+.thinking-live summary span { background: linear-gradient(90deg, var(--dim), var(--text), var(--dim)); background-size: 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: shimmer 1.6s linear infinite; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+.cursor { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--cyan); margin-left: 4px; vertical-align: middle; animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.25; transform: scale(0.7); } }
+.err { color: var(--danger); background: rgba(255,139,139,0.06); border: 1px solid rgba(255,139,139,0.25); border-radius: 12px; padding: 10px 14px; font-size: 14px; }
+.msg-tools { display: flex; gap: 2px; margin-top: 6px; opacity: 0; transition: opacity 0.2s; }
+.msg:hover .msg-tools, .msg:last-child .msg-tools { opacity: 1; }
+.msg-tools button { background: none; border: 0; color: var(--dim); padding: 5px; border-radius: 8px; display: flex; }
+.msg-tools button:hover { color: var(--text); background: var(--glass); }
+.msg-tools svg.i { width: 15px; height: 15px; }
+.msg-tools .model-note { font-size: 12px; color: var(--dim); align-self: center; margin-left: 6px; }
+
+/* composer */
+.composer-wrap { padding: 0 24px 18px; }
+.composer {
+  max-width: 800px; margin: 0 auto; background: var(--panel); border: 1px solid var(--line-strong);
+  border-radius: 20px; padding: 10px 10px 10px 18px; display: flex; align-items: flex-end; gap: 8px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.composer:focus-within { border-color: rgba(255,255,255,0.28); box-shadow: 0 0 0 4px rgba(255,255,255,0.03); }
+.composer textarea {
+  flex: 1; background: none; border: 0; outline: 0; resize: none; max-height: 240px; min-height: 26px;
+  padding: 6px 0; line-height: 1.5;
+}
+.composer textarea::placeholder { color: var(--dim); }
+.send {
+  width: 38px; height: 38px; border-radius: 12px; border: 0; background: var(--btn); color: var(--btn-text);
+  display: grid; place-items: center; flex: none; transition: opacity 0.2s, transform 0.2s;
+}
+.send:disabled { opacity: 0.25; cursor: default; }
+.send:not(:disabled):hover { transform: scale(1.05); }
+.send svg.i { width: 18px; height: 18px; stroke-width: 2.2; }
+.hint { text-align: center; color: var(--dim); font-size: 12px; margin-top: 8px; }
+
+/* buttons + fields */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; border-radius: 99px; padding: 9px 18px; font-weight: 500; font-size: 14px; border: 1px solid transparent; white-space: nowrap; text-decoration: none; }
+.btn-primary { background: var(--btn); color: var(--btn-text); }
+.btn-primary:hover { background: #fff; }
+.btn-ghost { background: var(--glass); border-color: var(--line); color: var(--text); }
+.btn-ghost:hover { border-color: var(--line-strong); background: rgba(255,255,255,0.06); }
+.btn-danger { background: none; border-color: rgba(255,139,139,0.3); color: var(--danger); }
+.btn:disabled { opacity: 0.4; cursor: default; }
+.field { width: 100%; background: var(--bg); border: 1px solid var(--line-strong); border-radius: 12px; padding: 9px 12px; outline: 0; }
+.field:focus { border-color: rgba(255,255,255,0.35); }
+textarea.field { resize: vertical; min-height: 120px; line-height: 1.5; }
+
+/* settings */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); display: none; align-items: center; justify-content: center; z-index: 50; padding: 20px; }
+.overlay.open { display: flex; animation: fade 0.2s; }
+@keyframes fade { from { opacity: 0; } }
+.modal { width: min(720px, 100%); max-height: 88vh; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line-strong); border-radius: 20px; box-shadow: 0 40px 100px rgba(0,0,0,0.6); animation: pop 0.25s var(--ease); }
+.modal-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 0 24px; }
+.modal-head h2 { font: 300 32px/1 var(--serif); margin: 0; }
+.tabs { display: flex; gap: 4px; padding: 14px 20px 0; border-bottom: 1px solid var(--line); }
+.tab { background: none; border: 0; padding: 9px 12px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; font-size: 14px; }
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--text); border-bottom-color: var(--text); }
+.modal-body { padding: 22px 24px 26px; overflow-y: auto; }
+.pane { display: none; }
+.pane.active { display: block; }
+.pane > p.lead { color: var(--muted); margin: 0 0 18px; font-size: 14px; }
+.prov { border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 10px; background: rgba(255,255,255,0.015); }
+.prov-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+.prov-head b { font-weight: 600; }
+.badge { font-size: 11px; border-radius: 99px; padding: 1px 9px; border: 1px solid var(--line-strong); color: var(--dim); }
+.badge.ok { color: var(--ok); border-color: rgba(139,255,180,0.3); }
+.badge.best { color: var(--cyan); border-color: rgba(139,233,255,0.3); }
+.prov p { margin: 0 0 10px; color: var(--muted); font-size: 13px; }
+.prov .row { display: flex; gap: 8px; }
+.prov .row .field { font-family: var(--mono); font-size: 13px; }
+.local-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 18px; }
+.local-item { display: flex; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 12px; padding: 8px 8px 8px 14px; font-size: 14px; }
+.local-item span { flex: 1; font-family: var(--mono); font-size: 13px; }
+.suggest { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 10px 0 14px; }
+.suggest button { text-align: left; background: var(--glass); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+.suggest button:hover { border-color: var(--line-strong); }
+.suggest b { display: block; font-weight: 500; font-size: 13px; font-family: var(--mono); }
+.suggest span { color: var(--dim); font-size: 12px; }
+.progress { height: 6px; border-radius: 99px; background: rgba(255,255,255,0.08); overflow: hidden; margin-top: 10px; display: none; }
+.progress i { display: block; height: 100%; width: 0; background: var(--cyan); transition: width 0.3s; }
+.pull-status { color: var(--muted); font-size: 13px; margin-top: 6px; min-height: 20px; }
+.set-label { display: block; font-size: 13px; font-weight: 500; margin: 0 0 8px; }
+.set-hint { color: var(--dim); font-size: 12px; margin: 6px 0 18px; }
+.range { width: 100%; accent-color: var(--text); }
+.range-labels { display: flex; justify-content: space-between; color: var(--dim); font-size: 12px; }
+.save-row { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
+.saved { color: var(--ok); font-size: 13px; opacity: 0; transition: opacity 0.3s; }
+.saved.show { opacity: 1; }
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translate(-50%, 20px); background: var(--btn); color: var(--btn-text); padding: 9px 16px; border-radius: 99px; font-size: 14px; opacity: 0; pointer-events: none; transition: opacity 0.25s, transform 0.3s var(--ease); z-index: 60; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 760px) {
+  .side { position: fixed; inset: 0 auto 0 0; z-index: 40; box-shadow: 20px 0 60px rgba(0,0,0,0.5); }
+  .ideas, .suggest { grid-template-columns: 1fr; }
+  .thread, .composer-wrap { padding-left: 16px; padding-right: 16px; }
+  .model-menu { width: calc(100vw - 32px); }
+  .toggle .label { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <symbol id="spark" viewBox="0 0 24 24"><path d="M12 2c.6 4.8 2.4 8.4 10 10-7.6 1.6-9.4 5.2-10 10-.6-4.8-2.4-8.4-10-10 7.6-1.6 9.4-5.2 10-10z" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="trash" viewBox="0 0 24 24"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+  <symbol id="menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></symbol>
+  <symbol id="up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+  <symbol id="stop" viewBox="0 0 24 24"><rect x="7" y="7" width="10" height="10" rx="2" fill="currentColor"/></symbol>
+  <symbol id="down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/></symbol>
+  <symbol id="redo" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></symbol>
+  <symbol id="x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+</svg>
+
+<aside class="side" id="side">
+  <div class="brand">
+    <svg class="brand-spark"><use href="#spark"/></svg>
+    <span class="brand-name">Nova <em>Bot</em></span>
+  </div>
+  <button class="new-chat" id="new-chat"><svg class="i"><use href="#plus"/></svg>New chat<kbd>Ctrl+N</kbd></button>
+  <div class="side-label">Chats</div>
+  <div class="chat-list" id="chat-list"></div>
+  <div class="side-foot">
+    <button class="side-btn" id="open-settings"><svg class="i"><use href="#gear"/></svg>Settings</button>
+  </div>
+</aside>
+
+<main>
+  <div class="top" id="top">
+    <button class="icon-btn" id="toggle-side" title="Show or hide chats"><svg class="i"><use href="#menu"/></svg></button>
+    <div class="model-pick">
+      <button class="model-btn" id="model-btn" aria-haspopup="true" aria-expanded="false">
+        <span id="model-name">Pick a model</span><span class="where" id="model-where"></span>
+        <svg class="i" style="width:15px;height:15px"><use href="#down"/></svg>
+      </button>
+      <div class="model-menu" id="model-menu"></div>
+    </div>
+    <div class="top-spacer"></div>
+    <label class="toggle" title="Let the AI think step by step before it answers (slower, smarter)">
+      <input type="checkbox" id="think-toggle" /><span class="switch"></span><span class="label">Think first</span>
+    </label>
+  </div>
+
+  <div class="scroll" id="scroll">
+    <div id="thread"></div>
+  </div>
+
+  <div class="composer-wrap">
+    <form class="composer" id="composer">
+      <textarea id="input" rows="1" placeholder="Message Nova…" autofocus></textarea>
+      <button class="send" id="send" type="submit" disabled title="Send (Enter)"><svg class="i"><use href="#up"/></svg></button>
+    </form>
+    <div class="hint" id="hint">Enter to send · Shift+Enter for a new line</div>
+  </div>
+</main>
+
+<div class="overlay" id="settings">
+  <div class="modal" role="dialog" aria-labelledby="settings-title">
+    <div class="modal-head">
+      <h2 id="settings-title">Settings</h2>
+      <button class="icon-btn" id="close-settings" title="Close"><svg class="i"><use href="#x"/></svg></button>
+    </div>
+    <div class="tabs">
+      <button class="tab active" data-tab="cloud">Free cloud AIs</button>
+      <button class="tab" data-tab="local">AI on this PC</button>
+      <button class="tab" data-tab="persona">Personality</button>
+    </div>
+    <div class="modal-body">
+      <div class="pane active" data-pane="cloud">
+        <p class="lead">These run on big servers, so they're the smartest. Each one is free with a daily limit. Make a free account, copy the key, and paste it here. Keys are saved only on this PC.</p>
+        <div id="prov-list"></div>
+      </div>
+      <div class="pane" data-pane="local">
+        <p class="lead">These run on your own PC through Ollama. They're private, have no limits, work offline and follow only the rules you give them, but they're less smart than the cloud AIs.</p>
+        <label class="set-label">Downloaded</label>
+        <div class="local-list" id="local-list"></div>
+        <label class="set-label">Download a model</label>
+        <div class="suggest" id="suggest"></div>
+        <div class="setup-row">
+          <input class="field" id="pull-name" placeholder="Any model name from ollama.com, e.g. qwen3.5:9b" />
+          <button class="btn btn-primary" id="pull-btn">Download</button>
+        </div>
+        <div class="progress" id="pull-progress"><i></i></div>
+        <div class="pull-status" id="pull-status"></div>
+      </div>
+      <div class="pane" data-pane="persona">
+        <label class="set-label" for="persona">Who Nova is and how it should answer</label>
+        <textarea class="field" id="persona" rows="7"></textarea>
+        <p class="set-hint">These instructions are sent with every chat. Change the name, tone or anything else.</p>
+        <label class="set-label" for="temp">Creativity <span id="temp-val" style="color:var(--dim);font-weight:400"></span></label>
+        <input type="range" class="range" id="temp" min="0" max="1.5" step="0.05" />
+        <div class="range-labels"><span>Focused</span><span>Creative</span></div>
+        <div class="save-row" style="margin-top:20px">
+          <button class="btn btn-primary" id="save-persona">Save</button>
+          <button class="btn btn-ghost" id="reset-persona">Reset to default</button>
+          <span class="saved" id="persona-saved">Saved</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+const LOCAL_SUGGESTIONS = [
+  { name: "qwen3.5:9b", note: "Best all-rounder for an 8 GB graphics card · 6.6 GB" },
+  { name: "gemma4:12b-it-qat", note: "Google's open model · 7.2 GB" },
+  { name: "qwen3.5:4b", note: "Smaller and faster · 3.4 GB" },
+  { name: "gemma4:e4b-it-qat", note: "Small Google model, quick · 6.1 GB" },
+];
+const IDEAS = [
+  ["Explain something", "How do black holes actually form?"],
+  ["Write code", "Write a Python script that renames every photo in a folder by date taken."],
+  ["Brainstorm", "Give me 10 ideas for a Roblox game nobody has made yet."],
+  ["Write for me", "Write a hype announcement for a new game update on Discord."],
+];
+
+let settings = null;
+let groups = [];
+let chats = [];
+let current = null;
+let busy = null; // AbortController while a reply is streaming
+
+// ---------- server ----------
+async function api(path, body) {
+  const r = await fetch(path, body === undefined ? {} : {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
+  });
+  return r.json();
+}
+async function streamApi(path, body, onEvent, signal) {
+  const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal });
+  const reader = r.body.getReader();
+  const dec = new TextDecoder();
+  let buf = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, { stream: true });
+    let nl;
+    while ((nl = buf.indexOf("\n")) >= 0) {
+      const line = buf.slice(0, nl).trim();
+      buf = buf.slice(nl + 1);
+      if (line) onEvent(JSON.parse(line));
+    }
+  }
+}
+let saveTimer;
+function saveChats() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => api("/nova/chats", chats.filter((c) => c.messages.length)), 400);
+}
+
+// ---------- markdown ----------
+function inline(s) {
+  const codes = [];
+  s = s.replace(/`([^`\n]+)`/g, (_, c) => { codes.push(c); return "\u0000" + (codes.length - 1) + "\u0000"; });
+  s = s.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+       .replace(/__(.+?)__/g, "<strong>$1</strong>")
+       .replace(/(^|[^*\w])\*(?!\s)(.+?)\*(?!\w)/g, "$1<em>$2</em>")
+       .replace(/~~(.+?)~~/g, "<del>$1</del>")
+       .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+       .replace(/(^|[\s(])(https?:\/\/[^\s<)]+)/g, '$1<a href="$2" target="_blank" rel="noopener">$2</a>');
+  return s.replace(/\u0000(\d+)\u0000/g, (_, i) => "<code>" + codes[i] + "</code>");
+}
+function renderBlocks(text) {
+  const lines = esc(text).split("\n");
+  let html = "", i = 0;
+  const isTableSep = (l) => /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?\s*$/.test(l);
+  const cells = (l) => l.trim().replace(/^\||\|$/g, "").split("|").map((c) => inline(c.trim()));
+  while (i < lines.length) {
+    const l = lines[i];
+    if (!l.trim()) { i++; continue; }
+    let m;
+    if ((m = l.match(/^(#{1,4})\s+(.*)$/))) { html += `<h${m[1].length}>${inline(m[2])}</h${m[1].length}>`; i++; continue; }
+    if (/^\s*([-*_])\s*(\1\s*){2,}$/.test(l)) { html += "<hr>"; i++; continue; }
+    if (l.includes("|") && i + 1 < lines.length && isTableSep(lines[i + 1])) {
+      html += "<table><thead><tr>" + cells(l).map((c) => `<th>${c}</th>`).join("") + "</tr></thead><tbody>";
+      i += 2;
+      while (i < lines.length && lines[i].includes("|") && lines[i].trim()) {
+        html += "<tr>" + cells(lines[i]).map((c) => `<td>${c}</td>`).join("") + "</tr>"; i++;
+      }
+      html += "</tbody></table>"; continue;
+    }
+    if (/^&gt;\s?/.test(l)) {
+      const q = [];
+      while (i < lines.length && /^&gt;\s?/.test(lines[i])) q.push(lines[i++].replace(/^&gt;\s?/, ""));
+      html += "<blockquote>" + inline(q.join("<br>")) + "</blockquote>"; continue;
+    }
+    if (/^\s*([-*+]|\d+[.)])\s+/.test(l)) {
+      const ordered = /^\s*\d/.test(l);
+      html += ordered ? "<ol>" : "<ul>";
+      while (i < lines.length && /^\s*([-*+]|\d+[.)])\s+/.test(lines[i])) {
+        let item = lines[i++].replace(/^\s*([-*+]|\d+[.)])\s+/, "");
+        while (i < lines.length && lines[i].trim() && /^\s{2,}\S/.test(lines[i]) && !/^\s*([-*+]|\d+[.)])\s+/.test(lines[i])) item += " " + lines[i++].trim();
+        html += "<li>" + inline(item) + "</li>";
+      }
+      html += ordered ? "</ol>" : "</ul>"; continue;
+    }
+    const p = [];
+    while (i < lines.length && lines[i].trim() && !/^(#{1,4}\s|&gt;|\s*([-*+]|\d+[.)])\s+)/.test(lines[i])) p.push(lines[i++]);
+    if (!p.length) p.push(lines[i++]);
+    html += "<p>" + inline(p.join("<br>")) + "</p>";
+  }
+  return html;
+}
+function markdown(text) {
+  const parts = text.split(/^```/m);
+  let html = "";
+  parts.forEach((part, n) => {
+    if (n % 2 === 0) { html += renderBlocks(part); return; }
+    const nl = part.indexOf("\n");
+    const lang = nl < 0 ? "" : part.slice(0, nl).trim();
+    const code = nl < 0 ? "" : part.slice(nl + 1).replace(/\n$/, "");
+    html += `<div class="code"><div class="code-head"><span>${esc(lang || "code")}</span><button data-copy>Copy</button></div><pre><code>${esc(code)}</code></pre></div>`;
+  });
+  return html;
+}
+
+// ---------- models ----------
+function modelLabel(id) { return id.replace(/^models\//, ""); }
+function providerName(pid) { return (groups.find((g) => g.id === pid) || {}).name || pid; }
+function selected() {
+  const v = (current && current.messages.length && current.model) ? current : null;
+  const key = v ? `${v.provider}|${v.model}` : settings.model;
+  if (!key) return null;
+  const [provider, ...rest] = key.split("|");
+  return { provider, model: rest.join("|") };
+}
+function firstAvailable() {
+  for (const g of groups) if (g.models.length && (g.id === "ollama" || settings.providers[g.id]?.has_key)) return { provider: g.id, model: g.models[0] };
+  return null;
+}
+function renderModelButton() {
+  const s = selected();
+  $("#model-name").textContent = s ? modelLabel(s.model) : "Pick a model";
+  $("#model-where").textContent = s ? (s.provider === "ollama" ? "this PC" : providerName(s.provider)) : "";
+}
+function renderModelMenu() {
+  const s = selected();
+  const menu = $("#model-menu");
+  let html = "";
+  for (const g of groups) {
+    const usable = g.id === "ollama" || settings.providers[g.id]?.has_key;
+    html += `<div class="mm-group">${esc(g.name)}${g.id === "gemini" ? "<small>smartest free</small>" : g.id === "ollama" ? "<small>private · no limits</small>" : ""}</div>`;
+    if (!usable) {
+      html += `<div class="mm-empty">Add a free key in <button data-goto="cloud">Settings</button> to use these.</div>`;
+      continue;
+    }
+    if (!g.models.length) {
+      html += `<div class="mm-empty">${g.error ? esc(g.error) + " " : ""}No models downloaded yet. <button data-goto="local">Download one</button></div>`;
+      continue;
+    }
+    if (g.error) html += `<div class="mm-empty">${esc(g.error)}</div>`;
+    g.models.slice(0, 40).forEach((m, n) => {
+      const on = s && s.provider === g.id && s.model === m;
+      const best = n === 0 && g.id !== "ollama" ? '<span class="tag">best</span>' : "";
+      html += `<button class="mm-item${on ? " sel" : ""}" data-model="${esc(g.id + "|" + m)}">${esc(modelLabel(m))}${best}</button>`;
+    });
+  }
+  menu.innerHTML = html;
+}
+async function loadModels() {
+  groups = await api("/nova/models");
+  if (!settings.model) {
+    const f = firstAvailable();
+    if (f) { settings.model = `${f.provider}|${f.model}`; api("/nova/settings", { model: settings.model }); }
+  }
+  renderModelButton();
+  renderModelMenu();
+  if (!current.messages.length) renderThread();
+}
+$("#model-btn").onclick = (e) => {
+  e.stopPropagation();
+  const menu = $("#model-menu");
+  const open = !menu.classList.contains("open");
+  menu.classList.toggle("open", open);
+  $("#model-btn").setAttribute("aria-expanded", open);
+  if (open) renderModelMenu();
+};
+$("#model-menu").onclick = (e) => {
+  const item = e.target.closest("[data-model]");
+  const go = e.target.closest("[data-goto]");
+  if (go) { closeMenu(); openSettings(go.dataset.goto); return; }
+  if (!item) return;
+  const [provider, ...rest] = item.dataset.model.split("|");
+  settings.model = item.dataset.model;
+  api("/nova/settings", { model: settings.model });
+  if (current.messages.length) { current.provider = provider; current.model = rest.join("|"); saveChats(); }
+  closeMenu();
+  renderModelButton();
+  if (!current.messages.length) renderThread();
+};
+function closeMenu() { $("#model-menu").classList.remove("open"); $("#model-btn").setAttribute("aria-expanded", false); }
+document.addEventListener("click", (e) => { if (!e.target.closest(".model-pick")) closeMenu(); });
+
+// ---------- chats ----------
+function newChat() {
+  if (busy) return;
+  current = { id: uid(), title: "New chat", created: Date.now(), messages: [] };
+  renderChatList();
+  renderThread();
+  renderModelButton();
+  $("#input").focus();
+}
+function openChat(id) {
+  if (busy) return;
+  current = chats.find((c) => c.id === id);
+  renderChatList();
+  renderThread();
+  renderModelButton();
+}
+function deleteChat(id) {
+  if (busy && current.id === id) return;
+  chats = chats.filter((c) => c.id !== id);
+  saveChats();
+  if (current.id === id) newChat(); else renderChatList();
+}
+function renderChatList() {
+  const list = $("#chat-list");
+  const sorted = [...chats].sort((a, b) => (b.updated || b.created) - (a.updated || a.created));
+  list.innerHTML = sorted.map((c) => `
+    <div class="chat-item${current && c.id === current.id ? " active" : ""}" data-id="${c.id}">
+      <span>${esc(c.title)}</span>
+      <button data-del="${c.id}" title="Delete chat"><svg class="i" style="width:15px;height:15px"><use href="#trash"/></svg></button>
+    </div>`).join("") || '<div style="color:var(--dim);font-size:13px;padding:6px 10px">No chats yet.</div>';
+}
+$("#chat-list").onclick = (e) => {
+  const del = e.target.closest("[data-del]");
+  if (del) { e.stopPropagation(); deleteChat(del.dataset.del); return; }
+  const item = e.target.closest("[data-id]");
+  if (item) openChat(item.dataset.id);
+};
+$("#new-chat").onclick = newChat;
+
+// ---------- thread ----------
+function hasAnyModel() { return !!firstAvailable(); }
+function renderWelcome() {
+  const ready = hasAnyModel();
+  let html = `<div class="welcome"><h1>Nova <em>Bot</em></h1>`;
+  if (ready) {
+    html += `<p class="sub">Your own AI. Ask it anything.</p><div class="ideas">` +
+      IDEAS.map(([t, q]) => `<button class="idea" data-idea="${esc(q)}"><b>${esc(t)}</b><span>${esc(q)}</span></button>`).join("") + "</div>";
+  } else {
+    html += `<p class="sub">Let's give Nova a brain. This takes about a minute.</p>
+      <div class="setup-card">
+        <h3>Connect Google Gemini, free</h3>
+        <p>The smartest AI you can use for free. It has a daily limit, but it's generous for one person.</p>
+        <ol>
+          <li>Open <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a> and sign in with any Google account.</li>
+          <li>Click <b>Create API key</b> and copy it.</li>
+          <li>Paste it below.</li>
+        </ol>
+        <div class="setup-row">
+          <input class="field" id="quick-key" placeholder="Paste your Gemini key" style="font-family:var(--mono);font-size:13px" />
+          <button class="btn btn-primary" id="quick-save">Connect</button>
+        </div>
+        <p style="margin:14px 0 0">Or <a href="#" data-goto="local">run an AI on this PC</a> instead: private and unlimited, but less smart.</p>
+      </div>`;
+  }
+  return html + "</div>";
+}
+function aiMessageHtml(m, idx) {
+  let html = "";
+  if (m.thinking) html += `<details class="think${m.streaming && !m.content ? " thinking-live" : ""}"${m.streaming && !m.content ? " open" : ""}><summary><span>${m.streaming && !m.content ? "Thinking…" : "Thought it through"}</span></summary><div class="think-text">${esc(m.thinking)}</div></details>`;
+  html += markdown(m.content || "");
+  if (m.streaming && !m.thinking && !m.content) html += '<span class="cursor"></span>';
+  if (m.error) html += `<div class="err">${esc(m.error)}</div>`;
+  return html;
+}
+function renderThread() {
+  const t = $("#thread");
+  if (!current.messages.length) { t.innerHTML = renderWelcome(); return; }
+  t.innerHTML = '<div class="thread">' + current.messages.map((m, i) => m.role === "user"
+    ? `<div class="msg user"><div class="bubble">${esc(m.content)}</div></div>`
+    : `<div class="msg ai" data-i="${i}"><div class="who"><svg><use href="#spark"/></svg>Nova</div><div class="body">${aiMessageHtml(m, i)}</div>
+        <div class="msg-tools"><button data-act="copy" data-i="${i}" title="Copy"><svg class="i"><use href="#copy"/></svg></button>${i === current.messages.length - 1 ? `<button data-act="redo" title="Try again"><svg class="i"><use href="#redo"/></svg></button>` : ""}<span class="model-note">${esc(modelLabel(m.model || ""))}</span></div></div>`
+  ).join("") + "</div>";
+  scrollDown(true);
+}
+function updateLast() {
+  const i = current.messages.length - 1;
+  const el = document.querySelector(`.msg.ai[data-i="${i}"] .body`);
+  if (!el) return renderThread();
+  const think = el.querySelector(".think-text");
+  const keepScroll = think ? think.scrollTop : 0;
+  const wasOpen = el.querySelector(".think")?.open;
+  el.innerHTML = aiMessageHtml(current.messages[i], i);
+  const t2 = el.querySelector(".think");
+  if (t2 && wasOpen !== undefined && current.messages[i].content) t2.open = wasOpen && !current.messages[i].streaming ? wasOpen : t2.open;
+  const tt = el.querySelector(".think-text");
+  if (tt) tt.scrollTop = current.messages[i].content ? keepScroll : tt.scrollHeight;
+  scrollDown();
+}
+let stick = true;
+$("#scroll").addEventListener("scroll", () => {
+  const s = $("#scroll");
+  stick = s.scrollHeight - s.scrollTop - s.clientHeight < 80;
+  $("#top").classList.toggle("scrolled", s.scrollTop > 4);
+});
+function scrollDown(force) { if (force || stick) { const s = $("#scroll"); s.scrollTop = s.scrollHeight; } }
+
+$("#thread").addEventListener("click", async (e) => {
+  const idea = e.target.closest("[data-idea]");
+  if (idea) { $("#input").value = idea.dataset.idea; autosize(); send(); return; }
+  const go = e.target.closest("[data-goto]");
+  if (go) { e.preventDefault(); openSettings(go.dataset.goto); return; }
+  if (e.target.closest("#quick-save")) {
+    const key = $("#quick-key").value.trim();
+    if (!key) return;
+    settings = await api("/nova/settings", { keys: { gemini: key } });
+    settings.model = "";
+    toast("Gemini connected");
+    await loadModels();
+    return;
+  }
+  const copy = e.target.closest("[data-copy]");
+  if (copy) {
+    navigator.clipboard.writeText(copy.closest(".code").querySelector("code").textContent);
+    copy.textContent = "Copied"; setTimeout(() => (copy.textContent = "Copy"), 1200); return;
+  }
+  const act = e.target.closest("[data-act]");
+  if (act && act.dataset.act === "copy") { navigator.clipboard.writeText(current.messages[+act.dataset.i].content); toast("Copied"); }
+  if (act && act.dataset.act === "redo" && !busy) {
+    current.messages.pop();
+    run();
+  }
+});
+
+// ---------- sending ----------
+const input = $("#input");
+function autosize() {
+  input.style.height = "auto";
+  input.style.height = Math.min(input.scrollHeight, 240) + "px";
+  $("#send").disabled = !busy && !input.value.trim();
+}
+input.addEventListener("input", autosize);
+input.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); if (!busy) send(); }
+});
+$("#composer").onsubmit = (e) => { e.preventDefault(); busy ? busy.abort() : send(); };
+
+function setBusy(ctrl) {
+  busy = ctrl;
+  $("#send").innerHTML = `<svg class="i"><use href="#${ctrl ? "stop" : "up"}"/></svg>`;
+  $("#send").title = ctrl ? "Stop" : "Send (Enter)";
+  autosize();
+}
+function send() {
+  const text = input.value.trim();
+  if (!text || busy) return;
+  const s = selected();
+  if (!s) { openSettings("cloud"); toast("Connect an AI first"); return; }
+  if (!current.messages.length) {
+    current.provider = s.provider; current.model = s.model;
+    current.title = text.length > 48 ? text.slice(0, 46).trim() + "…" : text;
+    if (!chats.includes(current)) chats.push(current);
+  }
+  current.messages.push({ role: "user", content: text });
+  input.value = "";
+  autosize();
+  run();
+}
+async function run() {
+  const s = selected();
+  const chat = current;
+  const reply = { role: "assistant", content: "", thinking: "", model: s.model, streaming: true };
+  chat.messages.push(reply);
+  chat.updated = Date.now();
+  renderChatList();
+  renderThread();
+  const ctrl = new AbortController();
+  setBusy(ctrl);
+  let frame = 0;
+  const paint = () => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; if (current === chat) updateLast(); }); };
+  try {
+    await streamApi("/nova/chat", {
+      provider: s.provider, model: s.model,
+      messages: chat.messages.slice(0, -1).map(({ role, content }) => ({ role, content })),
+    }, (ev) => {
+      if (ev.type === "text") reply.content += ev.content;
+      else if (ev.type === "thinking") reply.thinking += ev.content;
+      else if (ev.type === "error") reply.error = ev.content;
+      paint();
+    }, ctrl.signal);
+  } catch (err) {
+    if (err.name !== "AbortError") reply.error = "Lost connection to Nova Bot. Is the app still running?";
+  }
+  reply.streaming = false;
+  if (!reply.content && !reply.error && ctrl.signal.aborted) reply.error = "Stopped.";
+  setBusy(null);
+  saveChats();
+  if (current === chat) renderThread();
+}
+
+// ---------- settings ----------
+function openSettings(tab) {
+  $("#settings").classList.add("open");
+  showTab(tab || "cloud");
+  renderProviders();
+  renderLocal();
+  $("#persona").value = settings.personality;
+  $("#temp").value = settings.temperature;
+  $("#temp-val").textContent = (+settings.temperature).toFixed(2);
+}
+function closeSettings() { $("#settings").classList.remove("open"); input.focus(); }
+function showTab(name) {
+  document.querySelectorAll(".tab").forEach((t) => t.classList.toggle("active", t.dataset.tab === name));
+  document.querySelectorAll(".pane").forEach((p) => p.classList.toggle("active", p.dataset.pane === name));
+}
+document.querySelectorAll(".tab").forEach((t) => (t.onclick = () => showTab(t.dataset.tab)));
+$("#open-settings").onclick = () => openSettings();
+$("#close-settings").onclick = closeSettings;
+$("#settings").onclick = (e) => { if (e.target.id === "settings") closeSettings(); };
+
+const PROV_INFO = {
+  gemini: ["best", "Smartest free", "Google's Gemini 3.8 Flash. Free daily limit; Google may use free-tier chats to improve its products."],
+  groq: ["", "Very fast", "Runs big open models like gpt-oss-120b at high speed. 1,000 free requests a day per model."],
+  openrouter: ["", "Many models", "One key for dozens of free models (DeepSeek, Qwen, Llama…). About 50 free requests a day."],
+};
+function renderProviders() {
+  $("#prov-list").innerHTML = Object.entries(settings.providers).map(([pid, p]) => {
+    const [cls, badge, text] = PROV_INFO[pid] || ["", "", ""];
+    return `<div class="prov">
+      <div class="prov-head"><b>${esc(p.name)}</b><span class="badge ${cls}">${badge}</span>${p.has_key ? `<span class="badge ok">Connected ${esc(p.key_hint)}</span>` : ""}</div>
+      <p>${esc(text)} <a href="${p.key_url}" target="_blank" rel="noopener">Get a free key</a></p>
+      <div class="row">
+        <input class="field" data-key="${pid}" type="password" placeholder="${p.has_key ? "Paste a new key to replace it" : "Paste key"}" autocomplete="off" />
+        <button class="btn btn-primary" data-save-key="${pid}">Save</button>
+        ${p.has_key ? `<button class="btn btn-danger" data-remove-key="${pid}">Remove</button>` : ""}
+      </div></div>`;
+  }).join("");
+}
+$("#prov-list").onclick = async (e) => {
+  const save = e.target.closest("[data-save-key]");
+  const remove = e.target.closest("[data-remove-key]");
+  if (!save && !remove) return;
+  const pid = (save || remove).dataset.saveKey || (save || remove).dataset.removeKey;
+  const key = save ? document.querySelector(`[data-key="${pid}"]`).value.trim() : "";
+  if (save && !key) return;
+  settings = await api("/nova/settings", { keys: { [pid]: key } });
+  if (remove && settings.model.startsWith(pid + "|")) { settings.model = ""; api("/nova/settings", { model: "" }); }
+  renderProviders();
+  toast(save ? `${settings.providers[pid].name} connected` : "Key removed");
+  loadModels();
+};
+
+function renderLocal() {
+  const g = groups.find((x) => x.id === "ollama") || { models: [] };
+  $("#local-list").innerHTML = g.models.length
+    ? g.models.map((m) => `<div class="local-item"><span>${esc(m)}</span><button class="btn btn-danger" data-del-model="${esc(m)}" style="padding:5px 12px">Delete</button></div>`).join("")
+    : `<div style="color:var(--dim);font-size:13px">${g.error ? esc(g.error) + " Install it from ollama.com, then restart Nova Bot." : "Nothing downloaded yet."}</div>`;
+  $("#suggest").innerHTML = LOCAL_SUGGESTIONS.map((s) => `<button data-pull="${s.name}"><b>${s.name}</b><span>${esc(s.note)}</span></button>`).join("");
+}
+$("#suggest").onclick = (e) => { const b = e.target.closest("[data-pull]"); if (b) { $("#pull-name").value = b.dataset.pull; pull(); } };
+$("#pull-btn").onclick = pull;
+$("#pull-name").addEventListener("keydown", (e) => { if (e.key === "Enter") pull(); });
+$("#local-list").onclick = async (e) => {
+  const b = e.target.closest("[data-del-model]");
+  if (!b) return;
+  b.disabled = true;
+  await api("/nova/delete-model", { model: b.dataset.delModel });
+  await loadModels();
+  renderLocal();
+};
+let pulling = false;
+async function pull() {
+  const name = $("#pull-name").value.trim();
+  if (!name || pulling) return;
+  pulling = true;
+  $("#pull-btn").disabled = true;
+  const bar = $("#pull-progress"), status = $("#pull-status");
+  bar.style.display = "block"; bar.firstElementChild.style.width = "0";
+  status.textContent = "Starting download…";
+  let failed = false;
+  try {
+    await streamApi("/nova/pull", { model: name }, (ev) => {
+      if (ev.type === "progress") {
+        if (ev.total) {
+          const pct = Math.round((ev.completed / ev.total) * 100);
+          bar.firstElementChild.style.width = pct + "%";
+          status.textContent = `Downloading ${name}: ${pct}% of ${(ev.total / 1e9).toFixed(1)} GB`;
+        } else status.textContent = ev.status;
+      } else if (ev.type === "error") { failed = true; status.textContent = "Couldn't download: " + ev.content; }
+    });
+  } catch { failed = true; status.textContent = "Download stopped."; }
+  if (!failed) {
+    status.textContent = `${name} is ready. Pick it from the model menu.`;
+    bar.firstElementChild.style.width = "100%";
+    settings.model = "ollama|" + name;
+    api("/nova/settings", { model: settings.model });
+  }
+  pulling = false;
+  $("#pull-btn").disabled = false;
+  await loadModels();
+  renderLocal();
+}
+
+$("#temp").oninput = () => ($("#temp-val").textContent = (+$("#temp").value).toFixed(2));
+$("#save-persona").onclick = async () => {
+  settings = await api("/nova/settings", { personality: $("#persona").value, temperature: +$("#temp").value });
+  const s = $("#persona-saved"); s.classList.add("show"); setTimeout(() => s.classList.remove("show"), 1500);
+};
+$("#reset-persona").onclick = () => { $("#persona").value = settings.default_personality; $("#temp").value = 0.7; $("#temp").oninput(); };
+
+$("#think-toggle").onchange = (e) => { settings.think = e.target.checked; api("/nova/settings", { think: settings.think }); };
+$("#toggle-side").onclick = () => document.body.classList.toggle("side-closed");
+
+let toastTimer;
+function toast(text) {
+  const t = $("#toast"); t.textContent = text; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
+}
+document.addEventListener("keydown", (e) => {
+  if (e.ctrlKey && e.key.toLowerCase() === "n") { e.preventDefault(); newChat(); }
+  if (e.key === "Escape") { closeMenu(); if ($("#settings").classList.contains("open")) closeSettings(); }
+});
+
+// ---------- start ----------
+(async () => {
+  if (innerWidth < 760) document.body.classList.add("side-closed");
+  settings = await api("/nova/settings");
+  chats = await api("/nova/chats");
+  $("#think-toggle").checked = !!settings.think;
+  current = { id: uid(), title: "New chat", created: Date.now(), messages: [] };
+  renderChatList();
+  renderThread();
+  renderModelButton();
+  await loadModels();
+})();
+</script>
+</body>
+</html>
