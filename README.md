@@ -2,6 +2,8 @@
 
 <p align="center">Your own AI chat app for Windows, made by Nova Studios. Free, private and yours to customise.</p>
 
+<p align="center"><a href="https://github.com/Acuz3D/nova-bot/releases/latest"><b>⬇ Download the latest version</b></a></p>
+
 ---
 
 Nova Bot is one chat window that can use the smartest free AIs on the internet or run AI models fully on your own PC. You can switch between them with one click.
@@ -27,7 +29,7 @@ Nova Bot is one chat window that can use the smartest free AIs on the internet o
 
 ## Install
 
-1. Download this repo: **Code → Download ZIP**, then unzip it somewhere.
+1. Download **Nova-Bot-x.x.x.zip** from the [latest release](https://github.com/Acuz3D/nova-bot/releases/latest), then unzip it somewhere.
 2. Double-click **`Install.bat`**. It installs Python and Ollama if you don't have them and adds a **Nova Bot** shortcut to your Desktop and Start menu.
 3. Open Nova Bot. It starts downloading a free AI for your PC by itself, and you can start chatting when the bar fills up.
    - **For the smartest AI as well:** get a free key at [Google AI Studio](https://aistudio.google.com/apikey) and paste it in.
